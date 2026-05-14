@@ -147,8 +147,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not was_overwritten:
         c.execute("DELETE FROM stocks WHERE user_id = ?", (user_id,))
         default_stocks = [
-            ('נאסד"ק 100', 'QQQ', user_id, 0, 0),
-            ('S&P 500', 'SPY', user_id, 0, 0),
+            ('נאסד"ק 100', 'NDX', user_id, 0, 0),
+            ('S&P 500', 'GSPC', user_id, 0, 0),
             ('ביטקוין', 'BTC-USD', user_id, 0, 0),
             ('דולר/שקל', 'USDILS=X', user_id, 0, 0),
             ('מדד תא 35', 'TA35.TA', user_id, 0, 0)
