@@ -144,14 +144,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     was_overwritten = result[0] if result else 0
     
     # אם הוא עדיין לא עבר דריסה - נדרוס לו את התיק עכשיו בפעם היחידה
-    if not was_overwritten:
-        c.execute("DELETE FROM stocks WHERE user_id = ?", (user_id,))
+ if not has_stocks:
         default_stocks = [
-            ('נאסד"ק 100', 'NDX', user_id, 0, 0),
-            ('S&P 500', 'GSPC', user_id, 0, 0),
-            ('ביטקוין', 'BTC-USD', user_id, 0, 0),
-            ('דולר/שקל', 'USDILS=X', user_id, 0, 0),
-            ('מדד תא 35', 'TA35.TA', user_id, 0, 0)
+            ('מדד נאסד"ק 100', '^NDX', user_id, 0, 0),    # ערך המדד (סביב 24,000)
+            ('מדד S&P 500', '^GSPC', user_id, 0, 0),      # ערך המדד (סביב 6,000)
+            ('ביטקוין', 'BTC-USD', user_id, 0, 0),        # מחיר ביטקוין עדכני
+            ('דולר/שקל', 'USDILS=X', user_id, 0, 0),      # שער חליפין
+            ('מדד תא 35', 'TA35.TA', user_id, 0, 0)        # מדד ת"א (סביב 2,200)
         ]
         c.executemany("INSERT INTO stocks (name, ticker, user_id, quantity, purchase_price) VALUES (?, ?, ?, ?, ?)", default_stocks)
         
