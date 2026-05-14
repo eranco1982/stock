@@ -104,44 +104,44 @@ async def get_stock_analysis(ticker_symbol):
     inv_url = f"https://www.investing.com/search/?q={ticker_symbol.split('-')[0]}"
     return f"⚠️ לא ניתן לשלוף תקציר כרגע.\n\n[צפה בחדשות ב-Investing.com]({inv_url})"
 
-async def get_prices_text(user_id, user_name):
-    try:
-        conn = sqlite3.connect(DB_PATH); c = conn.cursor()
-        c.execute("SELECT name, ticker, quantity, purchase_price FROM stocks WHERE user_id = ?", (user_id,))
-        rows = c.fetchall(); conn.close()
-        greeting = get_greeting(user_name)
-        if not rows: return f"{greeting}\n\nהתיק שלך ריק כרגע.", None
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # 1. רישום המשתמש אם הוא לא קיים
+    c.execute("INSERT OR IGNORE INTO users (user_id, first_name) VALUES (?, ?)", (user_id, user.first_name))
+    
+    # 2. בדיקה האם כבר יש למשתמש מניות בתיק
+    c.execute("SELECT COUNT(*) FROM stocks WHERE user_id = ?", (user_id,))
+    has_stocks = c.fetchone()[0] > 0
+    
+    # 3. אם התיק ריק - נטען את מניות ברירת המחדל
+    if not has_stocks:
+        default_stocks = [
+            ('נאסד"ק 100', 'QQQ', user_id, 0, 0),
+            ('S&P 500', 'SPY', user_id, 0, 0),
+            ('ביטקוין', 'BTC-USD', user_id, 0, 0),
+            ('דולר/שקל', 'USDILS=X', user_id, 0, 0),
+            ('מדד תא 35', 'TA35.TA', user_id, 0, 0)
+        ]
+        c.executemany("INSERT INTO stocks (name, ticker, user_id, quantity, purchase_price) VALUES (?, ?, ?, ?, ?)", default_stocks)
+        logging.info(f"Loaded default stocks for new user: {user_id}")
         
-        t = Ticker([r[1] for r in rows], asynchronous=True, formatted=False)
-        prices = t.price
-        msg = f"{greeting}\nמצב התיק שלך:\n━━━━━━━━━━━━━━━\n\n"
-        kb = []
-        for name, ticker, qty, buy_p in rows:
-            d = prices.get(ticker, {})
-            curr_p = d.get('regularMarketPrice', 0)
-            change = d.get('regularMarketChangePercent', 0) * 100
-            icon = "🟢" if change >= 0 else "🔴"
-            symbol = "₪" if ".TA" in ticker or "USDILS" in ticker else "$"
-            msg += f"🔹 **{name}**\nשער: `{symbol}{curr_p:,.2f}` ({icon} {change:+.2f}%)\n\n"
-            kb.append([InlineKeyboardButton(f"🔍 ניתוח: {name}", callback_data=f"analyze_{ticker}")])
-        kb.append([InlineKeyboardButton("🔄 רענון נתונים", callback_data="refresh")])
-        return msg, InlineKeyboardMarkup(kb)
-    except Exception as e:
-        logging.error(f"Price load error: {e}")
-        return "⚠️ שגיאה בטעינת הנתונים.", None
-
-# --- טיפול בהודעות ---
-
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text: return
-    user_id = update.effective_user.id
-    user_name = update.effective_user.first_name
-    text = update.message.text
-    state = context.user_data.get('state')
-
-    main_kb = [['📊 הצג את כל השערים'], ['➕ הוספת מניה', '❌ הסרת מניה']]
-    if user_id == ADMIN_ID: main_kb.append(['📊 סטטיסטיקה', '💎 ניהול פרימיום', '📢 הודעה לכולם'])
-    reply_markup = ReplyKeyboardMarkup(main_kb, resize_keyboard=True)
+    conn.commit()
+    conn.close()
+    
+    # הגדרת המקלדת
+    kb = [['📊 הצג את כל השערים'], ['➕ הוספת מניה', '❌ הסרת מניה']]
+    if user_id == ADMIN_ID: 
+        kb.append(['📊 סטטיסטיקה', '💎 ניהול פרימיום', '📢 הודעה לכולם'])
+        
+    await update.message.reply_text(
+        f"{get_greeting(user.first_name)}\nברוך הבא לבוט המניות האישי שלך!\n\nהגדרנו עבורך מניות ברירת מחדל בתיק. 📈", 
+        reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True)
+    )
 
     # פקודות מנהל
     if user_id == ADMIN_ID:
