@@ -12,7 +12,7 @@ from yahooquery import Ticker
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 
-# הגדרת לוגים
+#  הגדרת לוגים
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 # --- הגדרות שרת Keep-Alive עבור Render ---
